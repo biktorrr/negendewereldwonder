@@ -5,63 +5,99 @@ import os
 import glob
 import string
 import datetime
+import errno
+import gphoto
 
-ser = serial.Serial("/dev/tty.usbmodemfa141",9600)
+ser = serial.Serial("/dev/ttyACM0",9600)
 
+# external programs
+ffmpeg = "ffmpeg"
+play = "omxplayer"
 
-def photoRename(ts):
-    
-    os.makedirs(ts)
-    # make new folder
-
-    #get all the jpg file names in the current folder
-    files = glob.glob("fotos/*.JPG") 
-    #sort the list
+def fetchCameraImages(dest_path):
+	# copy images from camera using gphoto2
+	# empties the destpath!!!
+    dest_path = os.path.normpath(dest_path)
+    ensureDirectory(dest_path)
+    emptyDirectory(dest_path)
+	
+    if gphoto.detectcamera() == False:
+        return "Camera not found"
+	
+    gphoto.resetusb()
+	# uses cwd to set working directory to destpath
+    p = subprocess.Popen(['gphoto2', '--get-all-files'],cwd=dest_path,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    print p.communicate()[0]
+    gphoto.resetusb()
+    p = subprocess.Popen(['gphoto2', '--recurse', '--delete-all-files'],stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    print p.communicate()[0]
+    gphoto.resetusb()
+	
+def renameImages(path):
+    # *.JPG files (copied from camera) are renamed to incrementing imgNNNN.jpg
+    path = os.path.normpath(path)
+    files = glob.glob(path+"/*.JPG") 
     files.sort()
     count = 0
-    # and rename each file
     for f in files:
         count = count + 1
         n = string.zfill(count,4) + ".jpg"
         print f, n, 
         try:
-            os.rename(f, ts + '/img' + n)
+            os.rename(f, path+'/img' + n)
             print
         except:
             print "error: didn't rename"
-
-
-def makeAndPlayVideo():
-
-    videofolder = "videos"
-    ts = datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S")
-    # get timestamp
-    videofile = videofolder + "/" + ts + ".mp4"
-
-    photoRename(ts)
-    # rename and move images from fotos to timestamped folder
     
-    print "python is now copying files and doing cool stuff, this will take some secs"
-    command = "ffmpeg -f image2 -r 12 -i " + ts + "/img%04d.jpg -vcodec mpeg4 -y " + videofile
- #   command = "/Applications/ffmpegX.app/Contents/Resources/ffmpeg -f image2 -r 12 -i " + ts + "/img%04d.jpg -vcodec mpeg4 -y " + videofile
+def createVideo(src_path, dest_file):
+	# make sure we have proper paths and the destination file does not exists yets
+    src_path = os.path.normpath(src_path)
+    if os.path.isfile(dest_file):
+        return dest_file+" exists already"
+    dest_dir = os.path.dirname(dest_file)
+    if(dest_dir):
+        ensureDirectory(dest_dir)
+    command = ffmpeg +" -f image2 -r 6 -i " + src_path + "/img%4d.jpg -vcodec mpeg4 -b 2000k " + dest_file
+    p = subprocess.Popen(command,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    print p.communicate()[0]
 
-    p = subprocess.Popen(command, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    output = p.communicate()[0]
-    print "python is done making the movie"
-    playMovie(videofile)
+def playVideo(file):
+    if not os.path.isfile(file):
+        return file+" does not exist"
+    subprocess.call([play, file])
+
+def generateDate():
+	# the filename of the video is the current time
+    ts = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+    return ts
+
+def ensureDirectory(path):
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
+
+def emptyDirectory(path):
+    files = glob.glob(path+'/*')
+    for f in files:
+        os.remove(f)
 
 
+# the whole chain
+def doIt():
+    imgDir = 'images'
+    videoDir = 'videos'
+    videoFile = videoDir+'/video'+generateDate()+'.avi'
+    print 'copy photos from camera to '+imgDir
+    fetchCameraImages(imgDir)
+    print 'rename files in '+imgDir
+    renameImages(imgDir)
+    print 'create video '+videoFile+' from '+imgDir
+    createVideo(imgDir, videoFile)
+    playVideo(videoFile)
 
-def playMovie(videofile):
-    print "python is now playing the movie"
-    command = "vlc " + videofile
-#   command = "/Applications/VLC.app/Contents/MacOS/VLC "+videofile
-
-    p = subprocess.Popen(command, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    print "python is done playing the movie"
-
-
-
+#doIt()
 
 while 1:
 
@@ -82,11 +118,10 @@ while 1:
        
     elif (x=="5"): #was 4
         print "arduino turning back"
-        makeAndPlayVideo()
+        doIt()
 
     #elif (x=="5"):
     #    print "arduino cycle ready"
      
         
-        
-
+       
