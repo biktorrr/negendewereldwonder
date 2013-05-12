@@ -187,7 +187,7 @@ void steppercam(int steps, int stepsize, boolean stepDirection, int delayDuratio
     // make foto + flash led
     digitalWrite(SHUTTER_PIN, HIGH);
     digitalWrite(ledPin, HIGH);
-    Serial.print(s+1); 
+    //Serial.print(s+1); 
     lcd.setCursor(7,1);
     lcd.print(s+1);
     delay(100);
