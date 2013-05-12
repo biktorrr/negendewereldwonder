@@ -61,7 +61,7 @@ void loop()
 
     Serial.write('3'); //ser: turning and snapping
 
-    steppercam(10,10,0);  // make 10 'steps', with size 10 in direction 0 
+    steppercam(10,100,0,500);  // make 10 'steps', with size 10 in direction 0, with delays 500
     //Serial.write('4'); // ser: going back
 
     currentState = 0;
@@ -71,7 +71,7 @@ void loop()
 } 
 
 
-void steppercam(int steps, int stepsize, boolean stepDirection){
+void steppercam(int steps, int stepsize, boolean stepDirection, int delayDuration){
   //first check the direction, if it's not the current direction change it.
   int currentDirection = digitalRead(stepperDirectionPin);
   if(stepDirection != currentDirection){
@@ -90,7 +90,7 @@ void steppercam(int steps, int stepsize, boolean stepDirection){
 
     steppermotor(stepsize);
  
-    delay(500);
+    delay(delayDuration);
   }
 }
 
