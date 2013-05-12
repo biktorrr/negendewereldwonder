@@ -159,7 +159,7 @@ void loop()
     lcd.setCursor(0,3);           // set cursor to column 0, row 0 (the first row)
     lcd.print("Nog xx seconden!");
 
-    steppercam(100,21,0,250);  // make 10 'steps', with size 10 in direction 0, with delays 500
+    steppercam(100,368,0,250);  // make 10 'steps', with size 10 in direction 0, with delays 500
     //Serial.write('4'); // ser: going back
     //1766 = 360 graden
 
@@ -316,8 +316,9 @@ void steppercam(int steps, int stepsize, boolean stepDirection, int delayDuratio
 void steppermotor(int motorsteps){
   for(int i=0; i<motorsteps; i++){ 
     digitalWrite(stepperPulsePin, LOW);  
+    //delay(10);
     digitalWrite(stepperPulsePin, HIGH);
-    delay(5);
+    delay(1);
     //Ia = SIN(Stepnumber*360/32)Imax
     //Ib = COS(Stepnumber*360/32)Imax
     }
