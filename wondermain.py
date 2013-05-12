@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import serial
 import time
 import subprocess
@@ -11,30 +13,28 @@ import gphoto
 #ser = serial.Serial("/dev/ttyACM0",9600)
 ser = serial.Serial("/dev/ttyACM0",9600)
 
-# external programs
-ffmpeg = "ffmpeg"
-#play = "omxplayer"
-play = "cvlc"
+# process holders
+proc_play = None
 
 def fetchCameraImages(dest_path):
-	# copy images from camera using gphoto2
-	# empties the destpath!!!
+    # copy images from camera using gphoto2
+    # empties the destpath!!!
     dest_path = os.path.normpath(dest_path)
     ensureDirectory(dest_path)
     emptyDirectory(dest_path)
-	
-    if gphoto.detectcamera() == False:
-        return "Camera not found"
-	
-    gphoto.resetusb()
-	# uses cwd to set working directory to destpath
-    p = subprocess.Popen(['gphoto2', '--get-all-files'],cwd=dest_path,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    print p.communicate()[0]
-    gphoto.resetusb()
-    p = subprocess.Popen(['gphoto2', '--recurse', '--delete-all-files'],stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    print p.communicate()[0]
-    gphoto.resetusb()
-	
+
+    # uses cwd to set working directory to destpath
+    print 'starting image download'
+    command = 'gphoto2 --get-all-files'
+    print command
+    subprocess.call(command, cwd=dest_path, shell=True)
+
+def removeCameraImages():
+    print 'starting remover'
+    command = 'gphoto2 --recurse --delete-all-files'
+    print command
+    return subprocess.Popen(command, shell=True)
+
 def renameImages(path):
     # *.JPG files (copied from camera) are renamed to incrementing imgNNNN.jpg
     path = os.path.normpath(path)
@@ -52,26 +52,37 @@ def renameImages(path):
             print "error: didn't rename"
     
 def createVideo(src_path, dest_file):
-	# make sure we have proper paths and the destination file does not exists yets
+    # make sure we have proper paths and the destination file does not exists yets
     src_path = os.path.normpath(src_path)
     if os.path.isfile(dest_file):
         return dest_file+" exists already"
     dest_dir = os.path.dirname(dest_file)
+    
     if(dest_dir):
         ensureDirectory(dest_dir)
-    command = ffmpeg +" -f image2 -r 6 -i " + src_path + "/img%4d.jpg -vcodec mpeg4 -b 2000k " + dest_file
-    p = subprocess.Popen(command,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-    print p.communicate()[0]
+
+    print 'starting encoder'
+    command = 'ffmpeg -f image2 -r 18 -i '+src_path+'/img%4d.jpg -vcodec mpeg4 -b 7000k '+dest_file
+    print command
+    return subprocess.Popen(command, shell=True)
 
 def playVideo(file):
+    global proc_play
+    
     if not os.path.isfile(file):
         return file+" does not exist"
-    command = play +" "+ file
-    p = subprocess.Popen(command,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-    #subprocess.call([play, file])
+    
+    if proc_play is not None:
+        print 'killing player'
+        proc_play.kill()
+    
+    print 'starting player'
+    command = 'exec cvlc -f -L '+file
+    print command
+    proc_play = subprocess.Popen(command, shell=True)
 
 def generateDate():
-	# the filename of the video is the current time
+    # the filename of the video is the current time
     ts = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     return ts
 
@@ -87,7 +98,6 @@ def emptyDirectory(path):
     for f in files:
         os.remove(f)
 
-
 # the whole chain
 def doIt():
     imgDir = 'images'
@@ -96,13 +106,23 @@ def doIt():
     videoFile = videoDir+'/video'+generateDate()+'.avi'
     print 'copy photos from camera to '+imgDir
     fetchCameraImages(imgDir)
+
+    proc_remove = removeCameraImages()
+
     print 'rename files in '+imgDir
     renameImages(imgDir)
+
     print 'create video '+videoFile+' from '+imgDir
-    createVideo(imgDir, videoFile)
+    createVideo(imgDir, videoFile).wait()
+
     playVideo(videoFile)
 
-#doIt()
+    print 'waiting for the remover to complete'
+    proc_remove.wait()
+
+    print 'doIt done'
+
+# doIt()
 
 while 1:
 
@@ -129,6 +149,4 @@ while 1:
 
     #elif (x=="5"):
     #    print "arduino cycle ready"
-     
-        
-       
+

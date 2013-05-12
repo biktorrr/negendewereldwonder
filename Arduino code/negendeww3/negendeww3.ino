@@ -33,6 +33,17 @@ const int L8 = 28;
 const int L9 = 29;
 const int L10 = 30;
 
+const int MIN_MOTOR_STEP_DELAY = 750;
+const int MAX_MOTOR_STEP_DELAY = 1250;
+
+const double BIG_WHEEL_TEETH = 190;
+const double SMALL_WHEEL_TEETH = 22;
+const double STEPS_PER_MOTOR_CIRCLE = 3200;
+const double STEPS_PER_TABLE_CIRCLE = STEPS_PER_MOTOR_CIRCLE * BIG_WHEEL_TEETH / SMALL_WHEEL_TEETH;
+
+const double PHOTOS_PER_ROUND = 100;
+
+const double STEPS_PER_PHOTO = STEPS_PER_TABLE_CIRCLE / PHOTOS_PER_ROUND;
 
 #define SHUTTER_PIN 36    // camera shutter pin
 //int switchPin = 3;       // button pin
@@ -61,7 +72,6 @@ void setup()
 
   // init Serial
   Serial.begin(9600);
-  Serial.write('1');  // ser: ready 
   
   //initialize Leds
   pinMode(L1,OUTPUT);
@@ -103,17 +113,19 @@ void resetAll(){
   lcd.print("de draaischijf en");
   lcd.setCursor(0,3);           // set cursor to column 0, row 0 (the first row)
   lcd.print("druk op de knop.");
-    digitalWrite(ledRood,HIGH);
-    digitalWrite(L1,LOW);
-    digitalWrite(L2,LOW);
-    digitalWrite(L3,LOW);
-    digitalWrite(L4,LOW);
-    digitalWrite(L5,LOW);
-    digitalWrite(L6,LOW);
-    digitalWrite(L7,LOW);
-    digitalWrite(L8,LOW);
-    digitalWrite(L9,LOW);
-    digitalWrite(L10,LOW);
+  digitalWrite(ledRood,HIGH);
+  digitalWrite(L1,LOW);
+  digitalWrite(L2,LOW);
+  digitalWrite(L3,LOW);
+  digitalWrite(L4,LOW);
+  digitalWrite(L5,LOW);
+  digitalWrite(L6,LOW);
+  digitalWrite(L7,LOW);
+  digitalWrite(L8,LOW);
+  digitalWrite(L9,LOW);
+  digitalWrite(L10,LOW);
+    
+  Serial.write('1');  // ser: ready 
 }
 
 void loop() 
@@ -159,7 +171,7 @@ void loop()
     lcd.setCursor(0,3);           // set cursor to column 0, row 0 (the first row)
     lcd.print("Nog xx seconden!");
 
-    steppercam(100,368,0,250);  // make 10 'steps', with size 10 in direction 0, with delays 500
+    steppercam(PHOTOS_PER_ROUND, STEPS_PER_PHOTO, 0);  // make 10 'steps', with size 10 in direction 0, with delays 500
     //Serial.write('4'); // ser: going back
     //1766 = 360 graden
 
@@ -193,7 +205,7 @@ void loop()
 } 
 
 
-void steppercam(int steps, int stepsize, boolean stepDirection, int delayDuration){
+void steppercam(int steps, int stepsize, boolean stepDirection){
   //first check the direction, if it's not the current direction change it.
   int currentDirection = digitalRead(stepperDirectionPin);
   if(stepDirection != currentDirection){
@@ -212,11 +224,8 @@ void steppercam(int steps, int stepsize, boolean stepDirection, int delayDuratio
     delay(100);
     digitalWrite(SHUTTER_PIN, LOW);
     digitalWrite(ledPin, LOW);
-    delay(250);
+    delay(100);
     steppermotor(stepsize);
- 
-    delay(delayDuration);
-  
   // Light it up
   
   if(s>steps*0.01){
@@ -313,15 +322,15 @@ void steppercam(int steps, int stepsize, boolean stepDirection, int delayDuratio
 }
 
 
-void steppermotor(int motorsteps){
-  for(int i=0; i<motorsteps; i++){ 
-    digitalWrite(stepperPulsePin, LOW);  
-    //delay(10);
+void steppermotor(int steps)
+{
+  for(float i=0; i < steps; i++)
+  { 
+    digitalWrite(stepperPulsePin, LOW);
     digitalWrite(stepperPulsePin, HIGH);
-    delay(1);
-    //Ia = SIN(Stepnumber*360/32)Imax
-    //Ib = COS(Stepnumber*360/32)Imax
-    }
+    int delay = MAX_MOTOR_STEP_DELAY - sin((PI * i) / steps) * (MAX_MOTOR_STEP_DELAY - MIN_MOTOR_STEP_DELAY);
+    
+    delayMicroseconds(delay);
   }
-
+}
 
