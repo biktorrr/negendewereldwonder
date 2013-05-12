@@ -8,6 +8,7 @@ import datetime
 import errno
 import gphoto
 
+#ser = serial.Serial("/dev/ttyACM0",9600)
 ser = serial.Serial("/dev/ttyACM0",9600)
 
 # external programs
@@ -88,7 +89,8 @@ def emptyDirectory(path):
 # the whole chain
 def doIt():
     imgDir = 'images'
-    videoDir = 'videos'
+    #videoDir = 'videos'
+    videoDir = "/home/synergique/Dropbox/video/"
     videoFile = videoDir+'/video'+generateDate()+'.avi'
     print 'copy photos from camera to '+imgDir
     fetchCameraImages(imgDir)
