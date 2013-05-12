@@ -88,6 +88,12 @@ void setup()
   lcd.setCursor(0,3);         // set cursor to column 0, row 3
   lcd.print("RMO Leiden");
   delay(3000);
+  resetAll();
+
+  
+} 
+
+void resetAll(){
   lcd.clear();
   lcd.setCursor(0,0);           // set cursor to column 0, row 0 (the first row)
   lcd.print("Ik ben WonderBot 9.0");
@@ -97,13 +103,6 @@ void setup()
   lcd.print("de draaischijf en");
   lcd.setCursor(0,3);           // set cursor to column 0, row 0 (the first row)
   lcd.print("druk op de knop.");
-  
-} 
-
-
-void loop() 
-{ 
-  if (currentState == 0){  
     digitalWrite(ledRood,HIGH);
     digitalWrite(L1,LOW);
     digitalWrite(L2,LOW);
@@ -115,6 +114,12 @@ void loop()
     digitalWrite(L8,LOW);
     digitalWrite(L9,LOW);
     digitalWrite(L10,LOW);
+}
+
+void loop() 
+{ 
+  if (currentState == 0){  
+
     buttonState = digitalRead(buttonPin);
     if (buttonState == HIGH) {         
       // turn LED on:    
@@ -136,6 +141,8 @@ void loop()
   } 
 
   else if (currentState == 1){
+    
+    
     digitalWrite(ledPin, LOW);  
 
     Serial.write('3'); //ser: turning and snapping
@@ -156,8 +163,7 @@ void loop()
     //Serial.write('4'); // ser: going back
     //1766 = 360 graden
 
-    currentState = 0;
-    Serial.write('5'); 
+    
     lcd.clear();
     lcd.setCursor(0,0);           // set cursor to column 0, row 0 (the first row)
     lcd.print("Het staat erop.");
@@ -168,7 +174,20 @@ void loop()
     lcd.setCursor(0,3);           // set cursor to column 0, row 0 (the first row)
     lcd.print("mooi filmpje van!");
     
+    Serial.write('5'); 
+    currentState = 2;
 
+  }
+  // waiting for news from python
+  else if (currentState = 2){
+    
+       if (Serial.available() > 0){
+            int incomingbyte = Serial.read();
+            if (incomingbyte == '6'){
+                resetAll();
+                currentState = 0;
+            }
+    }
   }
   
 } 

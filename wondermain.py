@@ -66,7 +66,9 @@ def createVideo(src_path, dest_file):
 def playVideo(file):
     if not os.path.isfile(file):
         return file+" does not exist"
-    subprocess.call([play, file])
+    command = play +" "+ file
+    p = subprocess.Popen(command,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    #subprocess.call([play, file])
 
 def generateDate():
 	# the filename of the video is the current time
@@ -122,6 +124,8 @@ while 1:
     elif (x=="5"): #was 4
         print "arduino turning back"
         doIt()
+	ser.write("6")
+	# tell the arduino we are done
 
     #elif (x=="5"):
     #    print "arduino cycle ready"
