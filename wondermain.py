@@ -12,7 +12,8 @@ ser = serial.Serial("/dev/ttyACM0",9600)
 
 # external programs
 ffmpeg = "ffmpeg"
-play = "omxplayer"
+#play = "omxplayer"
+play = "cvlc"
 
 def fetchCameraImages(dest_path):
 	# copy images from camera using gphoto2
