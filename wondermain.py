@@ -1,152 +1,245 @@
 #!/usr/bin/env python
 
 import serial
+from serial.serialutil import SerialException
 import time
 import subprocess
 import os
-import glob
+from glob import glob
 import string
 import datetime
 import errno
-import gphoto
+import atexit
+import logging
+import sys
+from shutil import copy
+from os.path import join,basename
 
-#ser = serial.Serial("/dev/ttyACM0",9600)
-ser = serial.Serial("/dev/ttyACM0",9600)
+# settings
 
-# process holders
-proc_play = None
+imageDownloadPath = "/home/synergique/wonder/negendewereldwonder/images"
+videoPath = "/home/synergique/Dropbox/video/"
+imagePath = "/home/synergique/Dropbox/images/"
+arduinoDevice = "/dev/ttyACM1"
 
-def fetchCameraImages(dest_path):
-    # copy images from camera using gphoto2
-    # empties the destpath!!!
-    dest_path = os.path.normpath(dest_path)
-    ensureDirectory(dest_path)
-    emptyDirectory(dest_path)
+# NO EDITING BELOW THIS LINE
 
-    # uses cwd to set working directory to destpath
-    print 'starting image download'
-    command = 'gphoto2 --get-all-files'
-    print command
-    subprocess.call(command, cwd=dest_path, shell=True)
+class WonderMain:
+    # process holders
+    playerProcess = None
 
-def removeCameraImages():
-    print 'starting remover'
-    command = 'gphoto2 --recurse --delete-all-files'
-    print command
-    return subprocess.Popen(command, shell=True)
+    # paths
+    imageDownloadPath = None
+    videoPath = None
+    imagePath = None
 
-def renameImages(path):
-    # *.JPG files (copied from camera) are renamed to incrementing imgNNNN.jpg
-    path = os.path.normpath(path)
-    files = glob.glob(path+"/*.JPG") 
-    files.sort()
-    count = 0
-    for f in files:
-        count = count + 1
-        n = string.zfill(count,4) + ".jpg"
-        print f, n, 
+    # the video we're currently working on
+    videoName = None
+    videoFile = None
+
+    # devices
+    arduinoDevice = None
+    # serial connection
+    ser = None
+
+    # serial handlers
+    serialHandlers = {
+        "1": "arduinoInit",
+        "2": "arduinoReady",
+        "3": "arduinoButtonPushed",
+        "4": "arduinoTurningAndSnapping",
+        "5": "arduinoDone",
+        "6": "arduinoWaiting",
+    }
+
+    def __init__(self, imageDownloadPath, videoPath, imagePath, arduinoDevice):
+        self.imageDownloadPath = imageDownloadPath
+        self.videoPath = videoPath
+        self.imagePath = imagePath
+        self.arduinoDevice = arduinoDevice
+
+    def openSerial(self):
+        for i in [0, 1, 2]:
+            try:
+                self.ser = serial.Serial("/dev/ttyACM%s" % (i), 9600)
+                return
+            except:
+                pass
+
+    def fetchCameraImages(self):
+        # uses cwd to set working directory to destpath
+        logging.info('starting image download')
+        command = 'exec gphoto2 --get-all-files'
+        logging.info(command)
+        
+        return subprocess.Popen(command, cwd=self.imageDownloadPath, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def removeCameraImages(self):
+        logging.info('starting remover')
+        command = 'exec gphoto2 --recurse --delete-all-files'
+        logging.info(command)
+        
+        return subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def renameImages(self):
+        # *.JPG files (copied from camera) are renamed to incrementing imgNNNN.jpg
+        files = glob(self.imageDownloadPath+"/*.JPG")
+        files.sort()
+        count = 0
+        for source in files:
+            count = count + 1
+            dest = "%s/img%s.jpg" % (self.imageDownloadPath, string.zfill(count,4))
+
+            try:
+                os.rename(source, dest)
+            except:
+                logging.info("error: didn't rename")
+    
+    def backupImages(self):
+        # create directory to store this video's images
+        destPath = self.imagePath+'/'+self.videoName
+        self.ensureDirectory(destPath)
+
+        for f in glob(self.imageDownloadPath+"/*.jpg"):
+            copy(f, join(destPath, basename(f)))
+
+    def createVideo(self):
+        self.videoFile = "%s/%s.avi" % (self.videoPath, self.videoName)
+        # command = 'exec avconv -f image2 -r 18 -i "%s/img%%4d.jpg" -vcodec mpeg4 -b 7000k "%s"' % (self.imageDownloadPath, self.videoFile)
+        command = 'avconv -r 18 -i %s/img%%4d.jpg -vcodec libx264 -preset ultrafast -profile baseline -vf crop=1920:1080:0:128 "%s"' % (self.imageDownloadPath, self.videoFile)
+        # 
+        logging.info(command)
+        
+        return subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def playVideo(self):
+        if self.playerProcess is not None:
+            logging.info('killing player')
+            playerProcess.kill()
+        
+        command = 'exec cvlc -f -L -q --no-osd --no-video-title-show "%s"' % (self.videoFile)
+        logging.info(command)
+        
+        playerProcess = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def generateDate(self):
+        # the filename of the video is the current time
+        return datetime.datetime.now().strftime("%d-%m-%Y om %H:%M")
+
+    def ensureDirectory(self, path):
         try:
-            os.rename(f, path+'/img' + n)
-            print
-        except:
-            print "error: didn't rename"
-    
-def createVideo(src_path, dest_file):
-    # make sure we have proper paths and the destination file does not exists yets
-    src_path = os.path.normpath(src_path)
-    if os.path.isfile(dest_file):
-        return dest_file+" exists already"
-    dest_dir = os.path.dirname(dest_file)
-    
-    if(dest_dir):
-        ensureDirectory(dest_dir)
+            os.makedirs(path)
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                raise
 
-    print 'starting encoder'
-    command = 'ffmpeg -f image2 -r 18 -i '+src_path+'/img%4d.jpg -vcodec mpeg4 -b 7000k '+dest_file
-    print command
-    return subprocess.Popen(command, shell=True)
+    def emptyDirectory(self, path):
+        files = glob(path+'/*')
+        for f in files:
+            os.remove(f)
 
-def playVideo(file):
-    global proc_play
-    
-    if not os.path.isfile(file):
-        return file+" does not exist"
-    
-    if proc_play is not None:
-        print 'killing player'
-        proc_play.kill()
-    
-    print 'starting player'
-    command = 'exec cvlc -f -L '+file
-    print command
-    proc_play = subprocess.Popen(command, shell=True)
+    def arduinoInit(self):
+        logging.info('arduino init')
 
-def generateDate():
-    # the filename of the video is the current time
-    ts = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-    return ts
+    def arduinoReady(self):
+        logging.info('arduino ready')
 
-def ensureDirectory(path):
-    try:
-        os.makedirs(path)
-    except OSError as exception:
-        if exception.errno != errno.EEXIST:
-            raise
+    def arduinoButtonPushed(self):
+        logging.info('arduino button pushed')
 
-def emptyDirectory(path):
-    files = glob.glob(path+'/*')
-    for f in files:
-        os.remove(f)
+    def arduinoTurningAndSnapping(self):
+        logging.info('arduino turning and snapping')
 
-# the whole chain
-def doIt():
-    imgDir = 'images'
-    #videoDir = 'videos'
-    videoDir = "/home/synergique/Dropbox/video/"
-    videoFile = videoDir+'/video'+generateDate()+'.avi'
-    print 'copy photos from camera to '+imgDir
-    fetchCameraImages(imgDir)
+    def arduinoDone(self):
+        self.videoName = "9e wereldwonder gemaakt op %s" % (self.generateDate())
 
-    proc_remove = removeCameraImages()
+        logging.info('fetching images from camera')
+        (out, err) = self.fetchCameraImages().communicate()
+        logging.info(out)
+        logging.info(err)
 
-    print 'rename files in '+imgDir
-    renameImages(imgDir)
+        logging.info('removing images from camera')
+        removeProcess = self.removeCameraImages()
 
-    print 'create video '+videoFile+' from '+imgDir
-    createVideo(imgDir, videoFile).wait()
+        logging.info('renaming images')
+        self.renameImages()
 
-    playVideo(videoFile)
+        logging.info('backup (export) images')
+        self.backupImages()
 
-    print 'waiting for the remover to complete'
-    proc_remove.wait()
+        logging.info('creating video')
+        (out, err) = self.createVideo().communicate()
+        logging.info(out)
+        logging.info(err)
 
-    print 'doIt done'
+        logging.info('start video playback')
+        self.playVideo()
 
-# doIt()
+        logging.info('removing local images')
+        self.emptyDirectory(self.imageDownloadPath)
 
-while 1:
+        logging.info('waiting for camera image remover to complete')
+        (out, err) = removeProcess.communicate()
+        logging.info(out)
+        logging.info(err)
 
-    try:
-        x = ser.read()
+        logging.info('done')
+        self.ser.write('6') # we're done
 
-    except serial.serialutil.SerialException:
-        pass
-    
-    if (x=="1"):
-        print "arduino ready"
-        
-    elif (x=="2"):
-        print "arduino button pushed"
-        
-    elif (x=="3"):
-        print "arduino turning and snapping"
-       
-    elif (x=="5"): #was 4
-        print "arduino turning back"
-        doIt()
-	ser.write("6")
-	# tell the arduino we are done
+    def arduinoWaiting(self):
+        logging.info('arduino waiting')
 
-    #elif (x=="5"):
-    #    print "arduino cycle ready"
+    def initialize(self):
+        logging.info('creating directories')
+        self.ensureDirectory(self.imageDownloadPath)
+        self.ensureDirectory(self.videoPath)
+        self.ensureDirectory(self.imagePath)
 
+        logging.info('connecting to arduino')
+        self.openSerial()
+
+        logging.info('removing local images')
+        self.emptyDirectory(self.imageDownloadPath)
+
+        logging.info('removing images from camera')
+        (out, err) = self.removeCameraImages().communicate()
+        logging.info(out)
+        logging.info(err)
+
+        # tell arduino we're ready
+        logging.info('ready')
+        self.ser.write('6') # we're done
+
+    def cleanup(self):
+        if self.ser is not None:
+            self.ser.close()
+
+    def run(self):
+        logging.basicConfig(
+            filename='/home/synergique/wondermain.log', 
+            filemode='w', 
+            format='%(asctime)s %(message)s', 
+            level=logging.DEBUG
+        )
+
+        atexit.register(self.cleanup)
+
+        logging.info('initializing')
+        self.initialize()
+
+        while True:
+            try:
+                logging.info('waiting for arduino')
+
+                x = self.ser.read()
+            except serial.serialutil.SerialException:
+                raise
+
+            if x in self.serialHandlers:
+                getattr(self, self.serialHandlers[x])()
+            else:
+                logging.info('Arduino command "%s" not understood' % (x))
+
+if __name__ == "__main__":
+    m = WonderMain(imageDownloadPath, videoPath, imagePath, arduinoDevice)
+    m.run()

@@ -221,7 +221,7 @@ void steppercam(int steps, int stepsize, boolean stepDirection){
     //Serial.print(s+1); 
     lcd.setCursor(7,1);
     lcd.print(s+1);
-    delay(100);
+    delay(150);
     digitalWrite(SHUTTER_PIN, LOW);
     digitalWrite(ledPin, LOW);
     delay(100);
