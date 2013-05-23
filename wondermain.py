@@ -105,9 +105,9 @@ class WonderMain:
 
     def createVideo(self):
         self.videoFile = "%s/%s.avi" % (self.videoPath, self.videoName)
-        # command = 'exec avconv -f image2 -r 18 -i "%s/img%%4d.jpg" -vcodec mpeg4 -b 7000k "%s"' % (self.imageDownloadPath, self.videoFile)
-        command = 'avconv -r 18 -i %s/img%%4d.jpg -vcodec libx264 -preset ultrafast -profile baseline -vf crop=1920:1080:0:128 "%s"' % (self.imageDownloadPath, self.videoFile)
-        # 
+        command = 'avconv -r 18 -i "%s/img%%4d.jpg" -vcodec mpeg4 -b 7000k "%s"' % (self.imageDownloadPath, self.videoFile)
+        #command = 'avconv -r 18 -i "%s/img%%4d.jpg" -vcodec libx264 -preset ultrafast -profile baseline "%s"' % (self.imageDownloadPath, self.videoFile)
+
         logging.info(command)
         
         return subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

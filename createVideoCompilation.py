@@ -11,7 +11,7 @@ import logging
 videoPath = "/home/synergique/Dropbox/video/"
 videoCompilationPath = "/home/synergique/videoCompilation"
 remotevideoCompilationPath = "marloes:/home/synergique/videoCompilation"
-length = 2
+length = 30
 
 # NO EDITING BELOW THIS LINE
 
