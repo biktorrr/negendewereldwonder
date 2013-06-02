@@ -127,12 +127,12 @@ class WonderMain:
     def playVideo(self):
         if self.playerProcess is not None:
             logging.info('killing player')
-            os.kill(self.playerProcess.pid, signal.SIGKILL)
+            self.playerProcess.kill()
         
         command = '/usr/bin/vlc -I "dummy" -f -L -q --no-osd --no-video-title-show "%s"' % (self.videoFile)
         logging.info(command)
         
-        playerProcess = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=os.setsid)
+        self.playerProcess = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=os.setsid)
 
     def generateDate(self):
         # the filename of the video is the current time
