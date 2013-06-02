@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import shlex
 import signal
 from os.path import expanduser
 import serial
@@ -80,17 +81,17 @@ class WonderMain:
     def fetchCameraImages(self):
         # uses cwd to set working directory to destpath
         logging.info('starting image download')
-        command = 'exec gphoto2 --get-all-files'
+        command = 'gphoto2 --get-all-files'
         logging.info(command)
         
-        return subprocess.Popen(command, cwd=self.imageDownloadPath, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return subprocess.Popen(shlex.split(command), cwd=self.imageDownloadPath, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def removeCameraImages(self):
         logging.info('starting remover')
-        command = 'exec gphoto2 --recurse --delete-all-files'
+        command = 'gphoto2 --recurse --delete-all-files'
         logging.info(command)
         
-        return subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def renameImages(self):
         # *.JPG files (copied from camera) are renamed to incrementing imgNNNN.jpg
@@ -121,17 +122,17 @@ class WonderMain:
 
         logging.info(command)
         
-        return subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def playVideo(self):
         if self.playerProcess is not None:
             logging.info('killing player')
             os.killpg(self.playerProcess.pid, signal.SIGTERM)
         
-        command = 'cvlc -f -L -q --no-osd --no-video-title-show "%s"' % (self.videoFile)
+        command = '/usr/bin/cvlc -f -L -q --no-osd --no-video-title-show "%s"' % (self.videoFile)
         logging.info(command)
         
-        playerProcess = subprocess.Popen(command, preexec_fn=os.setsid)
+        playerProcess = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def generateDate(self):
         # the filename of the video is the current time
