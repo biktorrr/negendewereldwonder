@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import time 
 import shlex
 import signal
 from os.path import expanduser
@@ -67,16 +68,18 @@ class WonderMain:
         self.ensureDirectory(self.imagePath)
 
     def openSerial(self):
-        for i in [0, 1, 2]:
-            self.arduinoDevice = "/dev/ttyACM%s" % (i)
-            if not os.path.exists(self.arduinoDevice):
-                continue
+        while True:
+            for i in [0, 1, 2]:
+                self.arduinoDevice = "/dev/ttyACM%s" % (i)
+                if not os.path.exists(self.arduinoDevice):
+                    time.sleep(5)
+                    continue
 
-            try:
-                self.ser = serial.Serial(self.arduinoDevice, 9600)
-                return
-            except:
-                pass
+                try:
+                    self.ser = serial.Serial(self.arduinoDevice, 9600)
+                    return
+                except:
+                    pass
 
     def fetchCameraImages(self):
         # uses cwd to set working directory to destpath
