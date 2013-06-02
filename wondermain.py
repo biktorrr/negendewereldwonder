@@ -129,7 +129,7 @@ class WonderMain:
             logging.info('killing player')
             self.playerProcess.kill()
         
-        command = '/usr/bin/cvlc -f -L -q --no-osd --no-video-title-show "%s"' % (self.videoFile)
+        command = '/usr/bin/vlc -I "dummy" -f -L -q --no-osd --no-video-title-show "%s"' % (self.videoFile)
         logging.info(command)
         
         playerProcess = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
