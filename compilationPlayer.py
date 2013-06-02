@@ -41,8 +41,8 @@ class CompilationPlayer:
 
 		while True:
 			self.updatePlaylist()
-			command = 'cvlc -f -L -q --no-osd --no-video-title-show "%s/playlist.m3u"' % (self.videoCompilationPath)
-			print command
+			command = '/usr/bin/vlc -I "dummy" -f -L -q --no-osd --no-video-title-show "%s/playlist.m3u"' % (self.videoCompilationPath)
+			logging.info(command)
 			subprocess.call(shlex.split(command))
 
 if __name__ == "__main__":
