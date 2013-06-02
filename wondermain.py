@@ -127,7 +127,7 @@ class WonderMain:
     def playVideo(self):
         if self.playerProcess is not None:
             logging.info('killing player')
-            os.killpg(self.playerProcess.pid, signal.SIGTERM)
+            self.playerProcess.kill()
         
         command = '/usr/bin/cvlc -f -L -q --no-osd --no-video-title-show "%s"' % (self.videoFile)
         logging.info(command)
