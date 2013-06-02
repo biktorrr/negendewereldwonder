@@ -12,7 +12,7 @@ from shutil import copy
 from os.path import join,basename
 
 videoCompilationPath = expanduser("~")+"/videoCompilation"
-repeat = 4
+repeat = 1
 
 class CompilationPlayer:
 	videoCompilationPath = None
