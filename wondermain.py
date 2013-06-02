@@ -51,6 +51,7 @@ class WonderMain:
         "6": "arduinoDone",
         "7": "arduinoBlinking",
         "8": "arduinoWaiting",
+        "9": "arduinoEncoderDone",
     }
 
     def __init__(self, imageDownloadPath, videoPath, imagePath):
@@ -114,8 +115,8 @@ class WonderMain:
 
     def createVideo(self):
         self.videoFile = "%s/%s.avi" % (self.videoPath, self.videoName)
-        command = 'avconv -r 18 -i "%s/img%%4d.jpg" -vcodec mpeg4 -b 7000k "%s"' % (self.imageDownloadPath, self.videoFile)
-        #command = 'avconv -r 18 -i "%s/img%%4d.jpg" -vcodec libx264 -preset ultrafast -profile baseline "%s"' % (self.imageDownloadPath, self.videoFile)
+        # command = 'avconv -r 18 -i "%s/img%%4d.jpg" -vcodec mpeg4 -b 7000k "%s"' % (self.imageDownloadPath, self.videoFile)
+        command = 'avconv -loop 1 -r 18 -i "%s/img%%4d.jpg" -vcodec mpeg4 -b 7000k -frames 400 "%s"' % (self.imageDownloadPath, self.videoFile)
 
         logging.info(command)
         
@@ -184,6 +185,8 @@ class WonderMain:
         logging.info(out)
         logging.info(err)
 
+        self.ser.write('9') # encoder done
+
         logging.info('start video playback')
         self.playVideo()
 
@@ -203,6 +206,9 @@ class WonderMain:
 
     def arduinoWaiting(self):
         logging.info('arduino waiting')
+
+    def arduinoEncoderDone(self):
+        logging.info('arduino encoder done')
 
     def initialize(self):
         logging.info('creating directories')

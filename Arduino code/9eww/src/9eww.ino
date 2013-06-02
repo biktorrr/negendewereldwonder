@@ -14,6 +14,7 @@
 #define STATE_DONE 6
 #define STATE_BLINKING 7
 #define STATE_WAITING 8
+#define STATE_ENCODER_DONE 9
 
 /* RUNTIME STATE */
 
@@ -26,7 +27,7 @@ char currentState = 0;
 int photosToGo = 0;
 
 unsigned long endTime = 0;
-int counter = 0;
+int stepsToTurnBack = 0;
 
 /* PIN CONFIGURATION */
 
@@ -46,7 +47,7 @@ int counter = 0;
 #define N_LEDS 12
 const int leds[N_LEDS] = {30, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 43};
 int waitingLed = 0;
-
+int newWaitingLed = 0;
 
 // lcd settings
 #define LCD_RS 23
@@ -122,8 +123,6 @@ void setup() {
     // fill in the LCD FILE structure
     fdev_setup_stream(&lcdout, lcd_putchar, NULL, _FDEV_SETUP_WRITE);
 
-    displayInitMessage();
-
     setState(STATE_RESET);
 }
 
@@ -133,7 +132,7 @@ void setState(int state) {
 }
 
 void resetAll() {
-    counter = 0;
+    stepsToTurnBack = 0;
     digitalWrite(MOTOR_DIRECTION_PIN, LOW);
 
     displayReadyMessage();
@@ -147,7 +146,7 @@ void resetAll() {
 
 void loop() {
     //host command handler
-    if(!counter && Serial.available() > 0) {
+    if(Serial.available() > 0) {
         int hostState = Serial.read() - 48; //ascii table
         setState(hostState);
     }
@@ -155,7 +154,9 @@ void loop() {
     //state loop
     switch(currentState) {
         case STATE_RESET:
-            resetAll();
+            if(!stepsToTurnBack) {
+                resetAll();
+            }
         break;
         case STATE_READY:
             //watch for button push
@@ -198,7 +199,7 @@ void loop() {
         case STATE_DONE:
             //we're turning back
             digitalWrite(MOTOR_DIRECTION_PIN, HIGH);
-            counter = STEPS_PER_TABLE_CIRCLE;
+            stepsToTurnBack = STEPS_PER_TABLE_CIRCLE;
 
             //wait for the host to say he's done..
             digitalWrite(BUTTON_LED_PIN, LOW);
@@ -217,7 +218,7 @@ void loop() {
             }
         break;
         case STATE_WAITING:
-            int newWaitingLed = millis() / WAITING_DELAY % N_LEDS;
+            newWaitingLed = millis() / WAITING_DELAY % N_LEDS;
 
             if(newWaitingLed != waitingLed) {
                 digitalWrite(leds[waitingLed], HIGH);
@@ -225,27 +226,28 @@ void loop() {
                 waitingLed = newWaitingLed;
             }
         break;
+        case STATE_ENCODER_DONE:
+            displayEncoderDoneMessage();
+        break;
     }
 
-    if(currentState > STATE_DONE) {
-        if(counter > 0) {
-            counter--;
-            digitalWrite(MOTOR_PULSE_PIN, LOW);
-            digitalWrite(MOTOR_PULSE_PIN, HIGH);
+    if(stepsToTurnBack > 0) {
+        stepsToTurnBack--;
+        digitalWrite(MOTOR_PULSE_PIN, LOW);
+        digitalWrite(MOTOR_PULSE_PIN, HIGH);
 
-            int n;
-            if(counter < 2000) {
-                n = counter;
-            } else if(STEPS_PER_TABLE_CIRCLE - counter < 2000) {
-                n = STEPS_PER_TABLE_CIRCLE - counter;
-            } else {
-                n = 2000;
-            }
-
-            int d = MAX_MOTOR_STEP_DELAY_BACK - sin((PI * n) / 4000) * (MAX_MOTOR_STEP_DELAY_BACK - MIN_MOTOR_STEP_DELAY_BACK);
-
-            delayMicroseconds(d);
+        int n;
+        if(stepsToTurnBack < 2000) {
+            n = stepsToTurnBack;
+        } else if(STEPS_PER_TABLE_CIRCLE - stepsToTurnBack < 2000) {
+            n = STEPS_PER_TABLE_CIRCLE - stepsToTurnBack;
+        } else {
+            n = 2000;
         }
+
+        int d = MAX_MOTOR_STEP_DELAY_BACK - sin((PI * n) / 4000) * (MAX_MOTOR_STEP_DELAY_BACK - MIN_MOTOR_STEP_DELAY_BACK);
+
+        delayMicroseconds(d);
     }
 }
 
@@ -276,61 +278,40 @@ static int lcd_putchar(char ch, FILE* stream) {
     return (0) ;
 }
 
-void displayInitMessage() {
-    LCD.clear();
-    LCD.setCursor(0,0);
-    fprintf(&lcdout, "9e Wereldwonder");
-    LCD.setCursor(0,1);
-    fprintf(&lcdout, "versie 1.0");
-    LCD.setCursor(0,2);
-    fprintf(&lcdout, "Synergique");
-    LCD.setCursor(0,3);
-    fprintf(&lcdout, "RMO Leiden");
-}
-
 void displayReadyMessage() {
     LCD.clear();
     LCD.setCursor(0,0);
     fprintf(&lcdout, "Ik ben WonderBot 9.0");
     LCD.setCursor(0,1);
-    fprintf(&lcdout, "Zet je maquette op");
+    fprintf(&lcdout, "Zet je wereldwonder");
     LCD.setCursor(0,2);
-    fprintf(&lcdout, "de draaischijf en");
+    fprintf(&lcdout, "op de draaischijf");
     LCD.setCursor(0,3);
-    fprintf(&lcdout, "druk op de knop.");
+    fprintf(&lcdout, "en druk op de knop.");
 }
 
 void displayHereWeGoMessage() {
     LCD.clear();
     LCD.setCursor(0,0);
-    fprintf(&lcdout, "Daar gaan we dan!");
+    fprintf(&lcdout, "Maar let op! Als ik");
     LCD.setCursor(0,1);
-    fprintf(&lcdout, "Als ik draai mag je");
+    fprintf(&lcdout, "draai mag je er niet");
     LCD.setCursor(0,2);
-    fprintf(&lcdout, "niet aan de schijf");
+    fprintf(&lcdout, "aankomen, oke?");
     LCD.setCursor(0,3);
-    fprintf(&lcdout, "of je maquette komen");
+    fprintf(&lcdout, "Daar gaan we dan...");
 }
-
-
-#define NMSG 5
-const char *msgs[NMSG] = {
-    "msg1",
-    "msg2",
-    "msg3",
-    "msg4",
-    "msg5",
-};
 
 void displayProgressMessage(int photosToGo, boolean full) {
     if(full) {
         LCD.clear();
         LCD.setCursor(0,0);
-        fprintf(&lcdout, "WONDERBOT 9.0 STATUS");
+        fprintf(&lcdout, "WonderBot 9.0 STATUS");
     }
 
     LCD.setCursor(0,1);
-    fprintf(&lcdout, "Foto %i van de %i", (int)floor(PHOTOS_PER_ROUND-photosToGo), (int) PHOTOS_PER_ROUND);
+    fprintf(&lcdout, "Foto's: %03d / %i", (int)floor(PHOTOS_PER_ROUND-photosToGo), (int) PHOTOS_PER_ROUND);
+
     LCD.setCursor(0,2);
     int done = floor((double)(PHOTOS_PER_ROUND - photosToGo) / PHOTOS_PER_ROUND * 20);
     for(int i=0; i < done; i++) {
@@ -340,23 +321,48 @@ void displayProgressMessage(int photosToGo, boolean full) {
         fprintf(&lcdout, "-");
     }
 
-    double perc = (PHOTOS_PER_ROUND - (double)photosToGo) / PHOTOS_PER_ROUND;
     LCD.setCursor(0, 3);
-
-    int displaymsg = floor((double)(PHOTOS_PER_ROUND - photosToGo) / PHOTOS_PER_ROUND * NMSG);
-    fprintf(&lcdout, msgs[displaymsg]);
+    switch(photosToGo) {
+        case 100:
+            fprintf(&lcdout, "We zijn onderweg!   ");
+        break;
+        case 75:
+            fprintf(&lcdout, "Film wordt gemaakt..");
+        break;
+        case 50:
+            fprintf(&lcdout, "We zijn op de helft!");
+        break;
+        case 35:
+            fprintf(&lcdout, "Nog heel even geduld");
+        break;
+        case 20:
+            fprintf(&lcdout, "Word je al duizelig?");
+        break;
+    }
 }
 
 void displayDoneMessage() {
     LCD.clear();
     LCD.setCursor(0,0);
-    fprintf(&lcdout, "Het staat erop.");
+    fprintf(&lcdout, "       Klaar!");
     LCD.setCursor(0,1);
-    fprintf(&lcdout, "Als jij je maquette");
+    fprintf(&lcdout, "Je filmpje wordt nu");
     LCD.setCursor(0,2);
-    fprintf(&lcdout, "pakt, maak ik er een");
+    fprintf(&lcdout, "gemaakt.");
     LCD.setCursor(0,3);
-    fprintf(&lcdout, "mooi filmpje van!");
+    fprintf(&lcdout, "Nog even geduld.....");
+}
+
+void displayEncoderDoneMessage() {
+    LCD.clear();
+    LCD.setCursor(0,0);
+    fprintf(&lcdout, "Je film is af!");
+    LCD.setCursor(0,1);
+    fprintf(&lcdout, "Bekijk hem links om");
+    LCD.setCursor(0,2);
+    fprintf(&lcdout, "de hoek. Vergeet je");
+    LCD.setCursor(0,3);
+    fprintf(&lcdout, "wereldwonder niet!");
 }
 
 void setAllLeds(int state) {
