@@ -229,7 +229,7 @@ class WonderMain:
 
         # tell arduino we're ready
         logging.info('ready')
-        self.ser.write('1') # we're done
+        self.ser.write('2') # we're done
 
     def cleanup(self):
         if self.ser is not None:

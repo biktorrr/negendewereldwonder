@@ -228,6 +228,7 @@ void loop() {
         break;
         case STATE_ENCODER_DONE:
             displayEncoderDoneMessage();
+            delay(5000);
         break;
     }
 
