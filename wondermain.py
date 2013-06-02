@@ -131,7 +131,7 @@ class WonderMain:
         command = 'cvlc -f -L -q --no-osd --no-video-title-show "%s"' % (self.videoFile)
         logging.info(command)
         
-        playerProcess = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=os.setsid)
+        playerProcess = subprocess.Popen(command, preexec_fn=os.setsid)
 
     def generateDate(self):
         # the filename of the video is the current time
