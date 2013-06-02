@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from os.path import expanduser
 import os
 from glob import glob
 from shutil import copy
@@ -8,16 +9,16 @@ import logging
 
 # settings
 
-videoPath = "/home/synergique/Dropbox/video/"
-videoCompilationPath = "/home/synergique/videoCompilation"
-remotevideoCompilationPath = "marloes:/home/synergique/videoCompilation"
+videoPath = expanduser("~")+"/Dropbox/video/"
+videoCompilationPath = expanduser("~")+"/videoCompilation"
+remotevideoCompilationPath = "marloes:~/videoCompilation"
 length = 30
 
 # NO EDITING BELOW THIS LINE
 
 def main(videoPath, videoCompilationPath, remotevideoCompilationPath, length):
 	logging.basicConfig(
-	    filename='/home/synergique/createvideocompilation.log', 
+	    filename=expanduser("~")+'/createvideocompilation.log', 
 	    filemode='w', 
 	    format='%(asctime)s %(message)s', 
 	    level=logging.DEBUG

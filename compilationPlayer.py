@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from os.path import expanduser
 import time
 import subprocess
 import shlex
@@ -10,7 +11,7 @@ import sys
 from shutil import copy
 from os.path import join,basename
 
-videoCompilationPath = "/home/synergique/videoCompilation"
+videoCompilationPath = expanduser("~")+"/videoCompilation"
 repeat = 4
 
 class CompilationPlayer:
@@ -32,7 +33,7 @@ class CompilationPlayer:
 
 	def main(self):
 		logging.basicConfig(
-		    filename='/home/synergique/mplayercontroller.log', 
+		    filename=expanduser("~")+'/mplayercontroller.log', 
 		    filemode='w', 
 		    format='%(asctime)s %(message)s', 
 		    level=logging.DEBUG

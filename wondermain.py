@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from os.path import expanduser
 import serial
 from serial.serialutil import SerialException
 import time
@@ -16,11 +17,9 @@ from shutil import copy
 from os.path import join,basename
 
 # settings
-
-imageDownloadPath = "/home/synergique/wonder/negendewereldwonder/images"
-videoPath = "/home/synergique/Dropbox/video/"
-imagePath = "/home/synergique/Dropbox/images/"
-arduinoDevice = "/dev/ttyACM1"
+imageDownloadPath = expanduser("~")+"/wonder/negendewereldwonder/images"
+videoPath = expanduser("~")+"/Dropbox/video/"
+imagePath = expanduser("~")+"/Dropbox/images/"
 
 # NO EDITING BELOW THIS LINE
 
@@ -45,23 +44,33 @@ class WonderMain:
     # serial handlers
     serialHandlers = {
         "1": "arduinoInit",
-        "2": "arduinoReady",
-        "3": "arduinoButtonPushed",
-        "4": "arduinoTurningAndSnapping",
-        "5": "arduinoDone",
-        "6": "arduinoWaiting",
+        "2": "arduinoReset",
+        "3": "arduinoReady",
+        "4": "arduinoButtonPushed",
+        "5": "arduinoTurningAndSnapping",
+        "6": "arduinoDone",
+        "7": "arduinoBlinking",
+        "8": "arduinoWaiting",
     }
 
-    def __init__(self, imageDownloadPath, videoPath, imagePath, arduinoDevice):
+    def __init__(self, imageDownloadPath, videoPath, imagePath):
         self.imageDownloadPath = imageDownloadPath
+        self.ensureDirectory(self.imageDownloadPath)
+
         self.videoPath = videoPath
+        self.ensureDirectory(self.videoPath)
+
         self.imagePath = imagePath
-        self.arduinoDevice = arduinoDevice
+        self.ensureDirectory(self.imagePath)
 
     def openSerial(self):
         for i in [0, 1, 2]:
+            self.arduinoDevice = "/dev/ttyACM%s" % (i)
+            if not os.path.exists(self.arduinoDevice):
+                continue
+
             try:
-                self.ser = serial.Serial("/dev/ttyACM%s" % (i), 9600)
+                self.ser = serial.Serial(self.arduinoDevice, 9600)
                 return
             except:
                 pass
@@ -141,6 +150,9 @@ class WonderMain:
     def arduinoInit(self):
         logging.info('arduino init')
 
+    def arduinoReset(self):
+        logging.info('arduino reset')
+
     def arduinoReady(self):
         logging.info('arduino ready')
 
@@ -184,7 +196,10 @@ class WonderMain:
         logging.info(err)
 
         logging.info('done')
-        self.ser.write('6') # we're done
+        self.ser.write('2') # reset arduino
+
+    def arduinoBlinking(self):
+        logging.info('arduino blinking')
 
     def arduinoWaiting(self):
         logging.info('arduino waiting')
@@ -208,7 +223,7 @@ class WonderMain:
 
         # tell arduino we're ready
         logging.info('ready')
-        self.ser.write('6') # we're done
+        self.ser.write('1') # we're done
 
     def cleanup(self):
         if self.ser is not None:
@@ -216,7 +231,7 @@ class WonderMain:
 
     def run(self):
         logging.basicConfig(
-            filename='/home/synergique/wondermain.log', 
+            filename=expanduser("~")+'/wondermain.log', 
             filemode='w', 
             format='%(asctime)s %(message)s', 
             level=logging.DEBUG
@@ -241,5 +256,5 @@ class WonderMain:
                 logging.info('Arduino command "%s" not understood' % (x))
 
 if __name__ == "__main__":
-    m = WonderMain(imageDownloadPath, videoPath, imagePath, arduinoDevice)
+    m = WonderMain(imageDownloadPath, videoPath, imagePath)
     m.run()
