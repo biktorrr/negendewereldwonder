@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import signal
 from os.path import expanduser
 import serial
 from serial.serialutil import SerialException
@@ -125,13 +126,12 @@ class WonderMain:
     def playVideo(self):
         if self.playerProcess is not None:
             logging.info('killing player')
-            playerProcess.kill()
-            playerProcess.wait()
+            os.killpg(self.playerProcess.pid, signal.SIGTERM)
         
         command = 'cvlc -f -L -q --no-osd --no-video-title-show "%s"' % (self.videoFile)
         logging.info(command)
         
-        playerProcess = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+        playerProcess = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=os.setsid)
 
     def generateDate(self):
         # the filename of the video is the current time
