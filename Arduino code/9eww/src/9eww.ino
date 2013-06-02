@@ -163,7 +163,7 @@ void loop() {
             buttonState = digitalRead(BUTTON_PIN);
             if(buttonState == HIGH) {
                 displayHereWeGoMessage();
-                delay(2000);
+                delay(7000);
                 setState(STATE_BUTTON_PUSHED);
             }
         break;
@@ -294,11 +294,11 @@ void displayReadyMessage() {
 void displayHereWeGoMessage() {
     LCD.clear();
     LCD.setCursor(0,0);
-    fprintf(&lcdout, "Maar let op! Als ik");
+    fprintf(&lcdout, "Goed zo! Als ik");
     LCD.setCursor(0,1);
-    fprintf(&lcdout, "draai mag je er niet");
+    fprintf(&lcdout, "draai mag je er");
     LCD.setCursor(0,2);
-    fprintf(&lcdout, "aankomen, oke?");
+    fprintf(&lcdout, "niet aankomen, oke?");
     LCD.setCursor(0,3);
     fprintf(&lcdout, "Daar gaan we dan...");
 }

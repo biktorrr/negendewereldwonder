@@ -125,13 +125,13 @@ class WonderMain:
     def playVideo(self):
         if self.playerProcess is not None:
             logging.info('killing player')
-            playerProcess.terminate()
+            playerProcess.kill()
             playerProcess.wait()
         
-        command = 'exec cvlc -f -L -q --no-osd --no-video-title-show "%s"' % (self.videoFile)
+        command = 'cvlc -f -L -q --no-osd --no-video-title-show "%s"' % (self.videoFile)
         logging.info(command)
         
-        playerProcess = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        playerProcess = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
 
     def generateDate(self):
         # the filename of the video is the current time
