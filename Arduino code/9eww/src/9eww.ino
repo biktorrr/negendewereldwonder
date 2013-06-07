@@ -163,7 +163,7 @@ void loop() {
             buttonState = digitalRead(BUTTON_PIN);
             if(buttonState == HIGH) {
                 displayHereWeGoMessage();
-                delay(7000);
+                delay(4000);
                 setState(STATE_BUTTON_PUSHED);
             }
         break;
@@ -345,13 +345,13 @@ void displayProgressMessage(int photosToGo, boolean full) {
 void displayDoneMessage() {
     LCD.clear();
     LCD.setCursor(0,0);
-    fprintf(&lcdout, "       Klaar!");
+    fprintf(&lcdout, "Klaar! Je filmpje");
     LCD.setCursor(0,1);
-    fprintf(&lcdout, "Je filmpje wordt nu");
+    fprintf(&lcdout, "wordt nu gemaakt.");
     LCD.setCursor(0,2);
-    fprintf(&lcdout, "gemaakt.");
+    fprintf(&lcdout, "Je mag je");
     LCD.setCursor(0,3);
-    fprintf(&lcdout, "Nog even geduld.....");
+    fprintf(&lcdout, "wereldwonder pakken!");
 }
 
 void displayEncoderDoneMessage() {

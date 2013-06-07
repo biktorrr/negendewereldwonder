@@ -121,7 +121,7 @@ class WonderMain:
     def createVideo(self):
         self.videoFile = "%s/%s.avi" % (self.videoPath, self.videoName)
         # command = 'avconv -r 18 -i "%s/img%%4d.jpg" -vcodec mpeg4 -b 7000k "%s"' % (self.imageDownloadPath, self.videoFile)
-        command = 'avconv -loop 1 -r 18 -i "%s/img%%4d.jpg" -vcodec mpeg4 -b 7000k -frames 400 "%s"' % (self.imageDownloadPath, self.videoFile)
+        command = 'avconv -loop 1 -r 18 -i "%s/img%%4d.jpg" -vcodec mpeg4 -b 7000k -frames 300 "%s"' % (self.imageDownloadPath, self.videoFile)
 
         logging.info(command)
         
