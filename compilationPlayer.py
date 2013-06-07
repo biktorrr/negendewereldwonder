@@ -41,7 +41,7 @@ class CompilationPlayer:
 
 		while True:
 			self.updatePlaylist()
-			command = '/usr/bin/vlc -I "dummy" -f -L -q --no-osd --no-video-title-show "%s/playlist.m3u"' % (self.videoCompilationPath)
+			command = '/usr/bin/vlc -I "dummy" -f -L -q --no-osd --no-video-title-show --width 1280 --height 800 "%s/playlist.m3u"' % (self.videoCompilationPath)
 			logging.info(command)
 			subprocess.call(shlex.split(command))
 

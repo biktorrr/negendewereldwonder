@@ -55,7 +55,6 @@ def main(videoPath, videoCompilationPath, remotevideoCompilationPath, length):
 		command = "rsync -auvz --delete %s/ %s/" % (videoCompilationPath, remotevideoCompilationPath)
 		logging.info(command)
 		os.popen(command).read()
-	
 
 if __name__ == "__main__":
 	main(videoPath, videoCompilationPath, remotevideoCompilationPath, length)
